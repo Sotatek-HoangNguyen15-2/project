@@ -21,7 +21,7 @@ static void esp_config_io(gpio_config_t *io_conf)
   // Khởi tạo cấu hình GPIO
   io_conf->intr_type = GPIO_INTR_DISABLE;       // Vô hiệu hóa ngắt
   io_conf->mode = GPIO_MODE_OUTPUT;             // Chế độ output
-  io_conf->pin_bit_mask = (1ULL << GPIO_NUM_4); // Sử dụng chân GPIO đã được định nghĩa
+  io_conf->pin_bit_mask = (1ULL << GPIO_NUM_2); // Sử dụng chân GPIO đã được định nghĩa
   io_conf->pull_down_en = GPIO_PULLDOWN_ENABLE; // kích hoạt pull-down resistor
   io_conf->pull_up_en = GPIO_PULLDOWN_ENABLE;   // kích hoạt pull-up resistor
 }
