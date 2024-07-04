@@ -3,6 +3,7 @@
 #include "driver/gpio.h"
 #include "driver/ledc.h"
 #include "motor.h"
+#include <stdio.h>
 
 void pin_init(gpio_num_t gpio_num)
 {
