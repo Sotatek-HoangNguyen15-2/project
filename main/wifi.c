@@ -36,7 +36,7 @@ void init_task_tcp()
 void tcp_client(void *pvParameters)
 {
   char rx_buffer[5];
-  char host_ip[] = "192.168.1.10"; // Server IP0
+  char host_ip[] = "192.168.35.11"; // Server IP0
   int addr_family = 0;
   int ip_protocol = 0;
 

@@ -4,7 +4,6 @@
 #include "driver/i2c.h"
 #include "esp_log.h"
 #include "motor.h"
-#include "math.h"
 
 #include "as5600.h"
 
@@ -14,15 +13,11 @@ static const char *TAG = "AS5600";
 static uint16_t data_sensor;
 static uint16_t root_point = 0;
 static bool flag_find_pos = false;
+extern uint16_t cur_pos;
 extern double veclocity;
 extern QueueHandle_t myQueue;
 extern motor_pid_t motor_pid;
 extern bool flag_pause;
-
-static uint16_t previous_pos;
-static uint16_t current_pos;
-static double pre_err = 0;
-double output = 0;
 
 // PID control variables
 float integral = 0;
@@ -51,33 +46,35 @@ static esp_err_t i2c_master_init(void)
   return i2c_driver_install(I2C_MASTER_NUM, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
 }
 
-void caculate_vec(uint16_t cur_pos, uint16_t pre_pos)
+static void pid_control(double current_value)
 {
-  double sub_pos;
+  static double pwm;
+  double error = (set_point - current_value) * motor_pid.clock_wise;
+  integral += error * 0.01;
+  double derivative = error - previous_error;
+  double output = motor_pid.kp * error + motor_pid.ki * integral + (motor_pid.kd * derivative) * 100;
+  previous_error = error;
 
-  if (cur_pos < pre_pos)
+  // Clamp max_output_value
+  if (output > 1200.0f)
   {
-    sub_pos = cur_pos + 4096 - pre_pos;
+    output = 1200.0f; // Max max_output_value
+  }
+  if (flag_find_pos == false)
+    pwm = output;
+  if (as5600_get_data_sensor() > 1000 && as5600_get_data_sensor() < 1100)
+  {
+    flag_find_pos = true;
+    motor_vibrate(0, LEDC_CHANNEL_1);
+  }
+  if (flag_find_pos == false)
+  {
+    motor_vibrate(output, LEDC_CHANNEL_1);
   }
   else
   {
-    sub_pos = cur_pos - pre_pos;
+    motor_vibrate(0, LEDC_CHANNEL_1);
   }
-  sub_pos *= 360;
-  sub_pos /= 4096;
-  veclocity = sub_pos * 100;
-}
-
-static void pid_control(double desire_speed)
-{
-  caculate_vec(current_pos, previous_pos);
-  previous_pos = current_pos;
-  double error = desire_speed - abs(veclocity);
-  double derivative = error - previous_error;
-  output += motor_pid.kp * error + motor_pid.ki * error * 0.01 + motor_pid.kd * (error - pre_err) * 100;
-  previous_error = error;
-
-  motor_vibrate(output, LEDC_CHANNEL_1);
 }
 
 static void read_as5600_data(void *pvParameters)
@@ -111,23 +108,28 @@ static void read_as5600_data(void *pvParameters)
       data_sensor = AS5600_PULSES_PER_REVOLUTION - 1;
     }
 
+    if (data_sensor > 1000 && data_sensor < 1100)
+    {
+      motor_vibrate(0, LEDC_CHANNEL_1);
+    }
+
     if (xTaskGetTickCount() - last_time_read_position >= pdMS_TO_TICKS(10))
     {
-      current_pos = data_sensor;
+      cur_pos = data_sensor;
       // Send the message to the queue
-      if (xQueueSend(myQueue, &current_pos, pdMS_TO_TICKS(1000)) != pdPASS)
+      if (xQueueSend(myQueue, &cur_pos, pdMS_TO_TICKS(1000)) != pdPASS)
       {
         ESP_LOGE(TAG, "Failed to send to queue");
       }
       else
       {
         last_time_read_position = xTaskGetTickCount();
-        if (flag_pause == false)
-          pid_control(set_point);
+        if (flag_pause == false && flag_find_pos == false)
+          pid_control(veclocity);
       }
     }
 
-    ESP_LOGI(TAG, "Data sensor AS5600 is %d", data_sensor);
+    // ESP_LOGI(TAG, "Data sensor AS5600 is %d", data_sensor);
     root_point = data_sensor;
     vTaskDelay(pdMS_TO_TICKS(I2C_TIMEOUT_MS));
   }

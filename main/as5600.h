@@ -17,6 +17,5 @@
 uint16_t get_root_point();
 void init_as5600();
 uint16_t as5600_get_data_sensor();
-void caculate_vec(uint16_t cur_pos, uint16_t pre_pos);
 
 #endif // define AS5600_H

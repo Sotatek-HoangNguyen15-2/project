@@ -56,6 +56,23 @@ void uart_vCreate()
     uart_set_pin(EX_UART_NUM, UART_TX, UART_RX, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
 
+void caculate_vec(uint16_t cur_pos, uint16_t pre_pos)
+{
+    double sub_pos;
+
+    if (cur_pos < pre_pos)
+    {
+        sub_pos = cur_pos + 4096 - pre_pos;
+    }
+    else
+    {
+        sub_pos = cur_pos - pre_pos;
+    }
+    sub_pos *= 360;
+    sub_pos /= 4096;
+    veclocity = sub_pos * 100;
+}
+
 void task_log_uart()
 {
     uint8_t buffer_pos[2];
@@ -115,8 +132,11 @@ void app_main(void)
     button_vSetCallback(button_vEventCallback);
 
     uart_vCreate();
-    pin_init(GPIO_NUM_27);
-    pin_set_level(GPIO_NUM_27, 1);
+    pin_init(GPIO_NUM_18);
+    pin_set_level(GPIO_NUM_18, 1);
+
+    pin_init(GPIO_NUM_4);
+    pin_set_level(GPIO_NUM_4, 0);
 
     // Create a queue capable of containing 10 integers
     myQueue = xQueueCreate(10, sizeof(uint16_t));
@@ -128,12 +148,12 @@ void app_main(void)
     }
 
     init_motor();
-    init_as5600();
-    // init_task_tcp();
+    //init_as5600();
+    init_task_tcp();
 
-    motor_pid.kp = 9.0f;
+    motor_pid.kp = 5.0f;
     motor_pid.ki = 0.5f;
-    motor_pid.kd = 0.05f;
+    motor_pid.kd = 0.002f;
 
     motor_pid.clock_wise = MOTOR_CW;
     xTaskCreate(task_log_uart, "task_log_uart", 8092, NULL, 3, NULL);
