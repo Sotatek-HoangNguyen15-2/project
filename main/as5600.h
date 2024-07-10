@@ -16,6 +16,5 @@
 
 uint16_t get_root_point();
 void init_as5600();
-uint16_t as5600_get_data_sensor();
 
 #endif // define AS5600_H

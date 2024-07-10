@@ -1,0 +1,7 @@
+{
+    "idf.adapterTargetName": "esp32",
+    "idf.portWin": "COM34",
+    "idf.flashType": "UART",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2
+}
